@@ -3,37 +3,39 @@ import traverse from '@babel/traverse';
 
 const noInformationTypes = ['CallExpression', 'Identifier', 'MemberExpression'];
 
-function getKeys(node) {
+function getKeys(node, options) {
+  const { dynamicMarker = '*' } = options;
+
   if (node.type === 'StringLiteral') {
     return [node.value];
   }
   if (node.type === 'BinaryExpression' && node.operator === '+') {
-    const left = getKeys(node.left);
-    const right = getKeys(node.right);
+    const left = getKeys(node.left, options);
+    const right = getKeys(node.right, options);
     if (left.length > 1 || right.length > 1) {
       console.warn('Unsupported multiple keys for binary expression, keys skipped.'); // TODO
     }
     return [left[0] + right[0]];
   }
   if (node.type === 'TemplateLiteral') {
-    return [node.quasis.map(quasi => quasi.value.cooked).join('*')];
+    return [node.quasis.map(quasi => quasi.value.cooked).join(dynamicMarker)];
   }
   if (node.type === 'ConditionalExpression') {
-    return [...getKeys(node.consequent), ...getKeys(node.alternate)];
+    return [...getKeys(node.consequent, options), ...getKeys(node.alternate, options)];
   }
   if (node.type === 'LogicalExpression') {
     switch (node.operator) {
       case '&&':
-        return [...getKeys(node.right)];
+        return [...getKeys(node.right, options)];
       case '||':
-        return [...getKeys(node.left), ...getKeys(node.right)];
+        return [...getKeys(node.left, options), ...getKeys(node.right, options)];
       default:
         console.warn(`unsupported logicalExpression's operator: ${node.operator}`);
         return [null];
     }
   }
   if (noInformationTypes.includes(node.type)) {
-    return ['*']; // We can't extract anything.
+    return [dynamicMarker]; // We can't extract anything.
   }
 
   console.warn(`Unsupported node: ${node.type}`);
@@ -99,7 +101,13 @@ function getBabelOptions(parser, babelOptions) {
 }
 
 export default function extractFromCode(code, options = {}) {
-  const { marker = 'i18n', keyLoc = 0, parser = null, babelOptions = null } = options;
+  const {
+    marker = 'i18n',
+    keyLoc = 0,
+    parser = null,
+    babelOptions = null,
+    dynamicMarker = '*',
+  } = options;
 
   const { ast } = transformSync(code, getBabelOptions(parser, babelOptions));
 
@@ -142,6 +150,7 @@ export default function extractFromCode(code, options = {}) {
       if ((type === 'Identifier' && name === marker) || path.get('callee').matchesPattern(marker)) {
         const foundKeys = getKeys(
           keyLoc < 0 ? node.arguments[node.arguments.length + keyLoc] : node.arguments[keyLoc],
+          { dynamicMarker },
         );
 
         foundKeys.forEach(key => {

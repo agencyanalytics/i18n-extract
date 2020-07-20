@@ -530,6 +530,136 @@ describe('#extractFromCode()', () => {
     });
   });
 
+  describe('dynamic keys with custom marker', () => {
+    let keys;
+
+    it('should return the right key with a concat', () => {
+      keys = extractFromCode(getCode('dynamicConcat.js'), { dynamicMarker: '__foobar__' });
+
+      assert.deepEqual(
+        [
+          {
+            key: 'key.__foobar__',
+            loc: {
+              end: {
+                column: 18,
+                line: 8,
+              },
+              start: {
+                column: 0,
+                line: 8,
+              },
+            },
+          },
+          {
+            key: 'key.__foobar__.bar',
+            loc: {
+              end: {
+                column: 27,
+                line: 11,
+              },
+              start: {
+                column: 0,
+                line: 11,
+              },
+            },
+          },
+          {
+            key: '__foobar__.bar',
+            loc: {
+              end: {
+                column: 18,
+                line: 14,
+              },
+              start: {
+                column: 0,
+                line: 14,
+              },
+            },
+          },
+          {
+            key: '__foobar__',
+            loc: {
+              end: {
+                column: 9,
+                line: 17,
+              },
+              start: {
+                column: 0,
+                line: 17,
+              },
+            },
+          },
+        ],
+        keys,
+        'Should return the right key.',
+      );
+    });
+
+    it('should return the right key with a template', () => {
+      keys = extractFromCode(getCode('dynamicTemplate.js'), { dynamicMarker: '__foobar__' });
+
+      assert.deepEqual(
+        [
+          {
+            key: 'key.__foobar__',
+            loc: {
+              end: {
+                column: 18,
+                line: 8,
+              },
+              start: {
+                column: 0,
+                line: 8,
+              },
+            },
+          },
+          {
+            key: 'key.__foobar__.bar',
+            loc: {
+              end: {
+                column: 22,
+                line: 11,
+              },
+              start: {
+                column: 0,
+                line: 11,
+              },
+            },
+          },
+          {
+            key: '__foobar__.bar',
+            loc: {
+              end: {
+                column: 18,
+                line: 14,
+              },
+              start: {
+                column: 0,
+                line: 14,
+              },
+            },
+          },
+          {
+            key: '__foobar__',
+            loc: {
+              end: {
+                column: 14,
+                line: 17,
+              },
+              start: {
+                column: 0,
+                line: 17,
+              },
+            },
+          },
+        ],
+        keys,
+        'Should return the right key.',
+      );
+    });
+  });
+
   describe('include comment', () => {
     it('should return the keys when added as a comment', () => {
       const keys = extractFromCode(getCode('comment.js'));
